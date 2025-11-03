@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            <%= title %>
+        </title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        <script>
+            let todos;
+
+            function addTodo() {
+                const title = document.getElementById('title').value
+                if (!title) return false;
+                fetch(`/api/todos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        completed: false
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Bad Network')
+                        }
+                        return response.json()
+                    })
+                    .then(data => {
+                        loadTodos()
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error)
+                    })
+                document.getElementById('title').value = ''
+                return false
+            }
+
+            function toggleTodo(id) {
+                const todo = todos.find(t => t.id === id)
+                const completed = !todo.completed
+                fetch(`/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        completed,
+                    })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Bad Network')
+                        }
+                        return response.json()
+                    })
+                    .then(data => {
+                        loadTodos()
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error)
+                    })
+                return false
+            }
+
+            function deleteTodo(event, id) {
+                event.stopPropagation()
+                fetch(`/api/todos/${id}`, {
+                    method: 'DELETE',
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Bad Network')
+                        }
+                        loadTodos()
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error)
+                    })
+                return false
+            }
+
+            function loadTodos() {
+                fetch(`/api/todos`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Bad Network')
+                        }
+                        return response.json()
+                    })
+                    .then(data => {
+                        todos = data
+                        console.log('Data received: ', data)
+                        renderTodos(data)
+                        renderCompletion(data)
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error)
+                    })
+            }
+
+            function renderTodos(todos) {
+                let html = '<ul class="space-y-3">';
+                for (let i = 0; i < todos.length; i++) {
+                    const t = todos[i];
+                    
+                    const titleClass = t.completed ? 'line-through text-lime-600' : 'text-lime-900';
+
+                    html += `
+                        <li class="flex items-center justify-between p-5 bg-rose-50 rounded-3xl px-10 transition ease-out cursor-pointer gap-20 hover:bg-lime-100"
+                            onclick="toggleTodo(${t.id})">
+                            <span class="text-lg hover:line-through ${titleClass}">
+                                ${t.title}
+                            </span>
+                            <span class="flex items-center justify-center w-6 h-6 rounded-full text-rose-500 font-bold hover:bg-rose-200"
+                                onclick="deleteTodo(event, ${t.id})">
+                                X
+                            </span>
+                        </li>
+                    `;
+                }
+                html += '</ul>';
+                document.getElementById('todos').innerHTML = html;
+            }
+
+            function renderCompletion(todos) {
+                const visualDiv = document.getElementById('completion');
+
+                const imgClasses = "w-8 h-8 mx-auto rounded-full object-cover";
+                
+                const totalTasks = todos.length;
+                if (totalTasks === 0) {
+                    visualDiv.innerHTML = `<img src="1.png" class=imgClasses />`;
+                    return;
+                }
+
+                const completedTasks = todos.filter(t => t.completed).length;
+                const percentage = (completedTasks / totalTasks) * 100;
+
+                if (percentage === 0) {
+                    visualDiv.innerHTML = `<img src="1.png" class=imgClasses />`;
+                } else if (percentage < 25) {
+                    visualDiv.innerHTML = `<img src="2.png" class=imgClasses />`;
+                } else if (percentage < 50) {
+                    visualDiv.innerHTML = `<img src="3.png" class=imgClasses />`;
+                } else if (percentage < 75) {
+                    visualDiv.innerHTML = `<img src="4.png" class=imgClasses />`;
+                } else if (percentage < 100) {
+                    visualDiv.innerHTML = `<img src="5.png" class=imgClasses />`;
+                } else {
+                    visualDiv.innerHTML = `<img src="6.png" class=imgClasses />`;
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', loadTodos);
+        </script>
+    </head>
+
+    <body class="flex min-h-screen items-center justify-center bg-lime-300 text-lime-900">
+        <div class="flex w-full flex-col items-center justify-center space-y-8 px-4 text-center lg:px-10">
+            <div class="flex flex-row gap-10 items-center">
+                <div id="completion"></div>
+                <div class="flex flex-col gap-10 items-center">
+                    <div id="todos"></div>
+                    <form method="POST" class="flex flex-row gap-10">
+                    <input name="title" id="title" type="text" class="px-20 rounded-3xl text-center bg-rose-50" />
+                    <button onclick="return addTodo()" type="submit" class="block rounded-3xl bg-rose-300 p-3 px-6 transition ease-out hover:bg-rose-200 hover:scale-125 hover:font-bold">
+                        Add new Todo
+                    </button>
+                </div>
+            </form>
+            </div>
+            <a href="/" class="block rounded-3xl bg-rose-300 p-3 px-6 transition ease-out hover:bg-rose-200 hover:scale-125 hover:font-bold">Go Back</a>
+        </div>
+    </body>
+</html>
