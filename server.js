@@ -6,7 +6,8 @@ app.use(bodyParser.json())
 
 app.use(express.static('img'))
 
-const port = 3000
+// const port = 3000
+const PORT = process.env.PORT || 3000
 
 // Set EJS as the templating engine
 app.set('view engine', 'ejs')
@@ -68,6 +69,6 @@ app.get('/', (req, res) => {
 })
 
 // Start server
-app.listen(port, () => {
+app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${port}`)
 })
